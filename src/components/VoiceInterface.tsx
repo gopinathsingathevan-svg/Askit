@@ -6,10 +6,12 @@ import { SecurityError, RateLimitError, ValidationError } from '../utils/errors'
 
 interface VoiceInterfaceProps {
   onTranscription: (text: string, analysis: any) => void;
+  onStart?: () => void;
+  onStop?: () => void;
   className?: string;
 }
 
-const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscription, className = '' }) => {
+const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscription, onStart, onStop, className = '' }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,13 +153,15 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscription, classN
     if (isRecording) {
       console.log('Stopping recording via button click');
       stopRecording();
+      onStop?.();
     } else {
       console.log('Starting recording via button click');
       clearRecordingError();
       setError(null);
       startRecording();
+      onStart?.();
     }
-  }, [isRecording, stopRecording, startRecording, clearRecordingError]);
+  }, [isRecording, stopRecording, startRecording, clearRecordingError, onStart, onStop]);
 
   const stopVoicePlayback = useCallback(() => {
     if (audioRef.current) {
@@ -171,17 +175,17 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscription, classN
   const displayError = error || recordingError;
 
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
+    <div className={`flex items-center ${className}`}>
       {/* Microphone Button */}
       <button
         onClick={handleMicClick}
         disabled={isProcessing}
-        className={`px-4 py-2 border-2 border-black font-medium text-base cursor-pointer transition-all hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`p-2 rounded-full font-medium text-base cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
           isRecording 
-            ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' 
+            ? 'bg-black text-white animate-pulse' 
             : isProcessing 
-            ? 'bg-blue-100 border-blue-500 text-blue-700'
-            : 'bg-white'
+            ? 'bg-gray-200 text-gray-600'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
         }`}
         title={
           isRecording 
@@ -199,54 +203,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscription, classN
           <Mic className="h-5 w-5" />
         )}
       </button>
-
-      {/* Voice Playback Control */}
-      {isPlaying && (
-        <button
-          onClick={stopVoicePlayback}
-          className="px-3 py-2 border-2 border-green-500 bg-green-100 text-green-700 font-medium text-base cursor-pointer transition-all hover:bg-green-200"
-          title="Stop voice response"
-        >
-          <VolumeX className="h-5 w-5" />
-        </button>
-      )}
-
-      {/* Language Indicator */}
-      {currentLanguage !== 'en' && (
-        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded border">
-          {currentLanguage.toUpperCase()}
-        </span>
-      )}
-
-      {/* Error Display */}
-      {displayError && (
-        <div className="flex items-center space-x-1 text-red-600 text-sm max-w-xs">
-          <AlertTriangle className="h-4 w-4" />
-          <span className="truncate" title={displayError}>{displayError}</span>
-        </div>
-      )}
-
-      {/* Status Indicators */}
-      {isRecording && (
-        <div className="flex items-center space-x-1 text-red-600 text-sm animate-pulse">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
-          <span>Recording...</span>
-        </div>
-      )}
-
-      {isProcessing && (
-        <div className="flex items-center space-x-1 text-blue-600 text-sm">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Processing...</span>
-        </div>
-      )}
-
-      {isPlaying && (
-        <div className="flex items-center space-x-1 text-green-600 text-sm">
-          <Volume2 className="w-4 h-4" />
-          <span>Speaking...</span>
-        </div>
-      )}
 
       {/* Hidden audio element for cleanup */}
       <audio ref={audioRef} style={{ display: 'none' }} />

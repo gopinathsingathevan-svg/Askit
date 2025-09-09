@@ -14,7 +14,8 @@ const getApiKey = (): string => {
 const validateEnvironment = (): boolean => {
   const apiKey = getApiKey();
   return !!apiKey;
-  if (!validateEnvironment()) {
+};
+
 const initializeOpenAI = (): OpenAI | null => {
   if (!validateEnvironment()) {
     return null;
@@ -94,15 +95,11 @@ export class OpenAIService {
       throw new SecurityError('OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your environment variables.');
     }
     return this.client;
-    }
-    return this.client;
   }
 
   // Security: Secure speech-to-text with validation
   async speechToText(audioFile: File): Promise<string> {
     try {
-      const client = this.ensureClient();
-
       const client = this.ensureClient();
 
       // Security: Rate limiting check
@@ -152,8 +149,6 @@ export class OpenAIService {
     language: string;
   }> {
     try {
-      const client = this.ensureClient();
-
       const client = this.ensureClient();
 
       // Security: Rate limiting and input validation
@@ -245,8 +240,6 @@ export class OpenAIService {
     try {
       const client = this.ensureClient();
 
-      const client = this.ensureClient();
-
       // Security: Rate limiting and input validation
       if (!rateLimiter.canMakeRequest()) {
         throw new RateLimitError('Too many requests. Please wait.');
@@ -285,8 +278,6 @@ export class OpenAIService {
   // Security: Secure content simplification
   async simplifyContent(content: string, targetLanguage = 'en'): Promise<string> {
     try {
-      const client = this.ensureClient();
-
       const client = this.ensureClient();
 
       if (!rateLimiter.canMakeRequest()) {
