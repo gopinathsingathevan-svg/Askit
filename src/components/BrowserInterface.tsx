@@ -320,7 +320,7 @@ const BrowserInterface: React.FC = () => {
         '>': '>',
         '&': '&',
         '"': '"',
-        "'": '''
+        "'": '&#39;'
       };
       return escapeMap[match] || match;
     });
