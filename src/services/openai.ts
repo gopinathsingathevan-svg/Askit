@@ -5,24 +5,20 @@ import { SecurityError, RateLimitError, ValidationError } from '../utils/errors'
 const getApiKey = (): string => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) {
-    throw new SecurityError('OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your environment variables.');
+    return '';
   }
   return apiKey;
 };
 
 // Security: Environment validation
-const validateEnvironment = (): void => {
-  try {
-    getApiKey();
-  } catch (error) {
-    console.error('Environment validation failed:', error);
-    throw error;
+const validateEnvironment = (): boolean => {
+  const apiKey = getApiKey();
+  return !!apiKey;
+  if (!validateEnvironment()) {
+const initializeOpenAI = (): OpenAI | null => {
+  if (!validateEnvironment()) {
+    return null;
   }
-};
-
-// Security: Initialize OpenAI client with secure configuration
-const initializeOpenAI = (): OpenAI => {
-  validateEnvironment();
   
   try {
     return new OpenAI({
@@ -31,7 +27,7 @@ const initializeOpenAI = (): OpenAI => {
     });
   } catch (error) {
     console.error('OpenAI initialization failed:', error);
-    throw new SecurityError('Failed to initialize OpenAI service');
+    return null;
   }
 };
 
@@ -87,20 +83,28 @@ const validateAudioFile = (file: File): void => {
 };
 
 export class OpenAIService {
-  private client: OpenAI;
+  private client: OpenAI | null;
   
   constructor() {
-    try {
-      this.client = initializeOpenAI();
-    } catch (error) {
-      console.error('OpenAI service initialization failed:', error);
-      throw error;
+    this.client = initializeOpenAI();
+  }
+
+  private ensureClient(): OpenAI {
+    if (!this.client) {
+      throw new SecurityError('OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your environment variables.');
     }
+    return this.client;
+    }
+    return this.client;
   }
 
   // Security: Secure speech-to-text with validation
   async speechToText(audioFile: File): Promise<string> {
     try {
+      const client = this.ensureClient();
+
+      const client = this.ensureClient();
+
       // Security: Rate limiting check
       if (!rateLimiter.canMakeRequest()) {
         throw new RateLimitError('Too many requests. Please wait before trying again.');
@@ -111,7 +115,7 @@ export class OpenAIService {
 
       console.log('Starting speech-to-text conversion...');
       
-      const response = await this.client.audio.transcriptions.create({
+      const response = await client.audio.transcriptions.create({
         file: audioFile,
         model: 'whisper-1',
         response_format: 'json',
@@ -148,6 +152,10 @@ export class OpenAIService {
     language: string;
   }> {
     try {
+      const client = this.ensureClient();
+
+      const client = this.ensureClient();
+
       // Security: Rate limiting and input validation
       if (!rateLimiter.canMakeRequest()) {
         throw new RateLimitError('Too many requests. Please wait.');
@@ -157,7 +165,7 @@ export class OpenAIService {
       
       console.log('Processing natural language input:', sanitizedInput);
       
-      const response = await this.client.chat.completions.create({
+      const response = await client.chat.completions.create({
         model: 'gpt-4',
         messages: [
           {
@@ -235,6 +243,10 @@ export class OpenAIService {
   // Security: Secure text-to-speech with validation
   async textToSpeech(text: string, language = 'en'): Promise<ArrayBuffer> {
     try {
+      const client = this.ensureClient();
+
+      const client = this.ensureClient();
+
       // Security: Rate limiting and input validation
       if (!rateLimiter.canMakeRequest()) {
         throw new RateLimitError('Too many requests. Please wait.');
@@ -248,7 +260,7 @@ export class OpenAIService {
 
       console.log('Starting text-to-speech conversion...');
       
-      const response = await this.client.audio.speech.create({
+      const response = await client.audio.speech.create({
         model: 'tts-1',
         voice: 'nova', // Clear, neutral voice
         input: sanitizedText,
@@ -273,13 +285,17 @@ export class OpenAIService {
   // Security: Secure content simplification
   async simplifyContent(content: string, targetLanguage = 'en'): Promise<string> {
     try {
+      const client = this.ensureClient();
+
+      const client = this.ensureClient();
+
       if (!rateLimiter.canMakeRequest()) {
         throw new RateLimitError('Too many requests. Please wait.');
       }
 
       const sanitizedContent = sanitizeInput(content);
 
-      const response = await this.client.chat.completions.create({
+      const response = await client.chat.completions.create({
         model: 'gpt-4',
         messages: [
           {
