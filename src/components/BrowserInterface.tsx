@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, Shield, Zap, CreditCard, FileText, Home, Globe, Languages, Mic, MicOff, MessageCircle, User, Minus, Square, X, Volume2 } from 'lucide-react';
+import { Search, Shield, Zap, CreditCard, FileText, Home, Globe, Languages, Mic, MicOff, MessageCircle, User, Minus, Square, X, Volume2, ChevronLeft, ChevronRight, RotateCcw, Plus, MoreHorizontal, Loader2 } from 'lucide-react';
 import VoiceInterface from './VoiceInterface';
 import { OpenAIService } from '../services/openai';
 
@@ -8,6 +8,7 @@ interface NavigationResult {
   content: React.ReactNode;
   icon: React.ReactNode;
   language?: string;
+  url?: string;
 }
 
 interface ChatMessage {
@@ -17,96 +18,309 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface Tab {
+  id: string;
+  title: string;
+  url: string;
+  icon: React.ReactNode;
+  isActive: boolean;
+}
+
 const BrowserInterface: React.FC = () => {
-  const [searchValue, setSearchValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState('Pay my electricity bill');
+  const [isLoading, setIsLoading] = useState(true);
+  const [processingStatus, setProcessingStatus] = useState('Processing voice command...');
   const [detectedLanguage, setDetectedLanguage] = useState('en');
   const [hasApiKey, setHasApiKey] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState(true);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [tabs, setTabs] = useState<Tab[]>([
+    {
+      id: '1',
+      title: 'BESCOM - Bill Payment',
+      url: 'https://bescom.karnataka.gov.in',
+      icon: <Zap className="h-3 w-3" />,
+      isActive: true
+    },
+    {
+      id: '2', 
+      title: 'UIDAI - Aadhaar Services',
+      url: 'https://uidai.gov.in',
+      icon: <CreditCard className="h-3 w-3" />,
+      isActive: false
+    },
+    {
+      id: '3',
+      title: 'Income Tax e-Filing',
+      url: 'https://incometax.gov.in',
+      icon: <FileText className="h-3 w-3" />,
+      isActive: false
+    }
+  ]);
+  
   const [currentPage, setCurrentPage] = useState<NavigationResult>({
-    title: 'AskIT AI Browser',
+    title: 'BESCOM - Electricity Bill Payment',
+    url: 'https://bescom.karnataka.gov.in/bill-payment',
     content: (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        {/* AskIT Logo/Branding */}
-        <div className="mb-8">
-          <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center mb-4 mx-auto">
-            <MessageCircle className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-4xl font-light text-black mb-2">AskIT</h1>
-          <p className="text-gray-600 text-lg">AI-Powered Government Services Browser</p>
-        </div>
-
-        {/* Demo Instructions */}
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-medium text-black mb-4">Try These Voice Commands:</h3>
-            <div className="grid md:grid-cols-2 gap-4 text-sm">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-black rounded-full"></div>
-                  <span className="text-gray-700">"Pay my electricity bill"</span>
+      <div className="min-h-screen" style={{
+        backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95)), url('/Taj Mahal With Indian Flag Colors In The Sky, India Independence Day, Taj Mahal Agra, India Background Image And Wallpaper for Free Download.jpeg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="max-w-6xl mx-auto p-8 space-y-8">
+          {/* AI Assistant Status Banner */}
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center animate-pulse">
+                  <MessageCircle className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-black rounded-full"></div>
-                  <span className="text-gray-700">"Change my Aadhaar address"</span>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">AskIT AI Assistant</h3>
+                  <p className="text-sm text-gray-600">✅ Automatically navigated to BESCOM portal</p>
+                  <p className="text-sm text-gray-600">🔄 Auto-filling your consumer details...</p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-black rounded-full"></div>
-                  <span className="text-gray-700">"Check tax filing status"</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-black rounded-full"></div>
-                  <span className="text-gray-700">"What does service number mean?"</span>
+              <div className="text-right">
+                <div className="flex items-center space-x-2 text-green-600 font-medium">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Task in Progress</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {!hasApiKey && (
-            <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
-              <div className="flex items-center justify-center space-x-2 text-gray-600">
-                <Shield className="h-4 w-4" />
-                <span className="text-sm">Demo mode - Voice features require API configuration</span>
+          {/* BESCOM Portal Interface */}
+          <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
+            {/* Portal Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-green-500 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Zap className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold">BESCOM</h1>
+                    <p className="text-orange-100">Bangalore Electricity Supply Company Limited</p>
+                    <p className="text-sm text-orange-100 mt-1">Government of Karnataka</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="bg-white/20 rounded-lg p-3">
+                    <p className="text-sm text-orange-100">Consumer ID</p>
+                    <p className="font-mono text-xl font-bold">123456789</p>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+
+            {/* Auto-filled Form Section */}
+            <div className="p-8 space-y-6">
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                  <p className="text-blue-800 font-medium">AskIT AI is automatically filling your details...</p>
+                </div>
+              </div>
+
+              {/* Bill Summary - Auto-populated */}
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-6 relative overflow-hidden">
+                  <div className="absolute top-2 right-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  </div>
+                  <h3 className="font-bold text-red-800 mb-2">Outstanding Bill</h3>
+                  <p className="text-4xl font-bold text-red-700">₹1,247</p>
+                  <p className="text-sm text-red-600 mt-1">Due: Sept 15, 2025</p>
+                  <div className="mt-3 text-xs text-red-600 bg-red-200 px-2 py-1 rounded-full inline-block">
+                    OVERDUE
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6">
+                  <h3 className="font-bold text-blue-800 mb-2">Current Usage</h3>
+                  <p className="text-3xl font-bold text-blue-700">287 kWh</p>
+                  <p className="text-sm text-blue-600 mt-1">August 2025</p>
+                  <div className="mt-3 text-xs text-blue-600">
+                    +23% from last month
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6">
+                  <h3 className="font-bold text-green-800 mb-2">Connection Status</h3>
+                  <p className="text-2xl font-bold text-green-700">Active</p>
+                  <p className="text-sm text-green-600 mt-1">All systems OK</p>
+                  <div className="mt-3 flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs text-green-600">Online</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Auto-filled Payment Form */}
+              <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center space-x-2">
+                  <CreditCard className="h-5 w-5" />
+                  <span>Payment Details</span>
+                  <div className="ml-auto flex items-center space-x-2 text-green-600 text-sm">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>Auto-filled by AI</span>
+                  </div>
+                </h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Consumer Number</label>
+                      <input 
+                        type="text" 
+                        value="123456789" 
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg bg-green-50 font-mono text-lg"
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Amount to Pay</label>
+                      <input 
+                        type="text" 
+                        value="₹1,247.00" 
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg bg-green-50 font-bold text-xl text-red-700"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                      <select className="w-full px-4 py-3 border-2 border-green-300 rounded-lg bg-green-50">
+                        <option>UPI Payment</option>
+                        <option>Net Banking</option>
+                        <option>Credit/Debit Card</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                      <input 
+                        type="text" 
+                        value="+91 98765 43210" 
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg bg-green-50 font-mono"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Action */}
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    <p>✅ Details verified automatically</p>
+                    <p>🔒 Secure payment gateway ready</p>
+                  </div>
+                  <button className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 shadow-lg">
+                    Pay ₹1,247 Now
+                  </button>
+                </div>
+              </div>
+
+              {/* AI Progress Steps */}
+              <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">AskIT AI Progress</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-gray-700">Voice command recognized: "Pay my electricity bill"</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-gray-700">Automatically navigated to BESCOM portal</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-gray-700">Retrieved your consumer details</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center animate-spin">
+                      <Loader2 className="h-3 w-3 text-white" />
+                    </div>
+                    <span className="text-gray-700 font-medium">Auto-filling payment form...</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                      <span className="text-gray-500 text-xs">4</span>
+                    </div>
+                    <span className="text-gray-400">Ready for payment confirmation</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     ),
-    icon: <Home className="h-4 w-4" />,
+    icon: <Zap className="h-4 w-4" />,
     language: 'en'
   });
   
   const openAIServiceRef = useRef(new OpenAIService());
 
-  // Check if API key is available
+  // Initialize with demo state
   useEffect(() => {
-    const checkApiKey = () => {
-      try {
-        const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-        setHasApiKey(!!apiKey);
-      } catch (error) {
-        console.error('API key check failed:', error);
-        setHasApiKey(false);
-      }
-    };
+    // Simulate initial loading and processing
+    setTimeout(() => {
+      setProcessingStatus('Navigating to BESCOM portal...');
+    }, 1000);
     
-    checkApiKey();
+    setTimeout(() => {
+      setProcessingStatus('Auto-filling your details...');
+    }, 2500);
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      setProcessingStatus('');
+      // Add initial AI messages
+      setChatMessages([
+        {
+          id: '1',
+          type: 'user',
+          content: 'Pay my electricity bill',
+          timestamp: new Date(Date.now() - 30000)
+        },
+        {
+          id: '2',
+          type: 'ai',
+          content: 'I understand you want to pay your electricity bill. Let me help you with that right away.',
+          timestamp: new Date(Date.now() - 25000)
+        },
+        {
+          id: '3',
+          type: 'ai',
+          content: 'I\'ve automatically navigated to the BESCOM portal and found your outstanding bill of ₹1,247. I\'m now filling in your payment details.',
+          timestamp: new Date(Date.now() - 10000)
+        }
+      ]);
+    }, 4000);
+
+    setHasApiKey(true);
   }, []);
 
   // Security: Input sanitization function
   const sanitizeInput = useCallback((input: string): string => {
     return input.replace(/[<>&"']/g, (match) => {
       const escapeMap: Record<string, string> = {
-        '<': '&lt;',
-        '>': '&gt;',
-        '&': '&amp;',
-        '"': '&quot;',
-        "'": '&#x27;'
+        '<': '<',
+        '>': '>',
+        '&': '&',
+        '"': '"',
+        "'": '''
       };
       return escapeMap[match] || match;
     });
@@ -124,396 +338,150 @@ const BrowserInterface: React.FC = () => {
     setShowChat(true);
   }, []);
 
-  // Enhanced navigation with AI analysis
-  const simulateNavigation = useCallback(async (query: string, analysis?: any) => {
-    setIsLoading(true);
-    
-    const sanitizedQuery = sanitizeInput(query);
-    
-    // Add user message to chat
-    addChatMessage('user', sanitizedQuery);
-    
-    try {
-      const intent = analysis?.intent || 'general_query';
-      const entities = analysis?.entities || {};
-      const language = analysis?.language || detectedLanguage;
-      const simplifiedQuery = analysis?.simplifiedQuery || sanitizedQuery;
-      
-      let pageContent: NavigationResult;
-      let aiResponse = '';
-
-      if (intent === 'electricity_bill' || query.toLowerCase().includes('electricity') || query.toLowerCase().includes('bijli') || query.toLowerCase().includes('pay')) {
-        aiResponse = "I'll help you pay your electricity bill. Let me open the BESCOM portal for you.";
-        
-        pageContent = {
-          title: 'BESCOM - Electricity Bill Payment',
-          content: (
-            <div className="max-w-4xl mx-auto space-y-6">
-              {/* Portal Header */}
-              <div className="bg-white border-2 border-black rounded-lg p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
-                      <Zap className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-black">BESCOM Portal</h2>
-                      <p className="text-gray-600">Bangalore Electricity Supply Company</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Consumer ID</p>
-                    <p className="font-mono text-lg">123456789</p>
-                  </div>
-                </div>
-
-                {/* Bill Summary */}
-                <div className="grid md:grid-cols-3 gap-6 mb-6">
-                  <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                    <h3 className="font-semibold text-black mb-2">Current Bill</h3>
-                    <p className="text-3xl font-bold text-black">₹740</p>
-                    <p className="text-sm text-gray-600">Due: Sept 10, 2025</p>
-                  </div>
-                  <div className="border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-semibold text-black mb-2">Usage</h3>
-                    <p className="text-2xl font-bold text-gray-700">145 kWh</p>
-                    <p className="text-sm text-gray-600">August 2025</p>
-                  </div>
-                  <div className="border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-semibold text-black mb-2">Status</h3>
-                    <p className="text-lg font-semibold text-green-600">Active</p>
-                    <p className="text-sm text-gray-600">Connection OK</p>
-                  </div>
-                </div>
-
-                {/* Payment Options */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-black">Payment Options</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <button className="border-2 border-black bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium">
-                      Pay ₹740 Now
-                    </button>
-                    <button className="border-2 border-gray-300 bg-white text-black px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                      Schedule Payment
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ),
-          icon: <Zap className="h-4 w-4" />,
-          language
-        };
-      } else if (intent === 'aadhaar_status' || query.toLowerCase().includes('aadhaar') || query.toLowerCase().includes('address')) {
-        aiResponse = "I'll guide you through changing your Aadhaar address. Here's the UIDAI portal with step-by-step instructions.";
-        
-        pageContent = {
-          title: 'UIDAI - Aadhaar Address Update',
-          content: (
-            <div className="max-w-4xl mx-auto space-y-6">
-              {/* Portal Header */}
-              <div className="bg-white border-2 border-black rounded-lg p-6">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
-                    <CreditCard className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-black">UIDAI Portal</h2>
-                    <p className="text-gray-600">Unique Identification Authority of India</p>
-                  </div>
-                </div>
-
-                {/* Step-by-step Guide */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-black">Address Update Process</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg">
-                      <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                      <div>
-                        <h4 className="font-semibold text-black">Verify Identity</h4>
-                        <p className="text-gray-600 text-sm">Enter your 12-digit Aadhaar number</p>
-                        <input 
-                          type="text" 
-                          placeholder="XXXX XXXX XXXX" 
-                          className="mt-2 px-3 py-2 border border-gray-300 rounded w-full max-w-xs font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="w-8 h-8 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                      <div>
-                        <h4 className="font-semibold text-gray-600">Upload Documents</h4>
-                        <p className="text-gray-500 text-sm">Proof of address (utility bill, bank statement, etc.)</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="w-8 h-8 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-                      <div>
-                        <h4 className="font-semibold text-gray-600">Review & Submit</h4>
-                        <p className="text-gray-500 text-sm">Verify new address details and submit request</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium">
-                    Continue to Step 1
-                  </button>
-                </div>
-              </div>
-            </div>
-          ),
-          icon: <CreditCard className="h-4 w-4" />,
-          language
-        };
-      } else if (query.toLowerCase().includes('service number') || query.toLowerCase().includes('what does')) {
-        aiResponse = "A service number is your unique identifier for government services. It helps track your applications and requests. Each service (electricity, gas, water) has its own service number printed on your bills.";
-        
-        pageContent = {
-          title: 'AskIT AI - Service Number Explanation',
-          content: (
-            <div className="max-w-3xl mx-auto">
-              <div className="bg-white border-2 border-black rounded-lg p-8">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
-                    <MessageCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-black">Service Number Explained</h2>
-                    <p className="text-gray-600">Understanding your government service identifiers</p>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <h3 className="font-semibold text-black mb-3">What is a Service Number?</h3>
-                    <p className="text-gray-700 leading-relaxed">
-                      A service number is your unique identifier for government services. It helps track your applications, 
-                      bills, and requests. Think of it like your account number for each service.
-                    </p>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-black mb-2">Where to Find It</h4>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        <li>• On your electricity bill (top right)</li>
-                        <li>• Gas connection documents</li>
-                        <li>• Water bill statements</li>
-                        <li>• Service application receipts</li>
-                      </ul>
-                    </div>
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-black mb-2">Why It's Important</h4>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        <li>• Tracks your service history</li>
-                        <li>• Required for payments</li>
-                        <li>• Needed for complaints</li>
-                        <li>• Used for service updates</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ),
-          icon: <MessageCircle className="h-4 w-4" />,
-          language
-        };
-      } else {
-        aiResponse = `I understand you're asking about: "${sanitizedQuery}". Let me help you find the right government service.`;
-        
-        pageContent = {
-          title: 'AskIT AI - Government Services',
-          content: (
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white border-2 border-black rounded-lg p-6">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
-                    <Search className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-black">Available Services</h2>
-                    <p className="text-gray-600">Choose a service or ask me anything</p>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="border-2 border-gray-200 rounded-lg p-6 hover:border-black transition-colors cursor-pointer group">
-                    <Zap className="h-8 w-8 text-gray-600 group-hover:text-black mb-3" />
-                    <h3 className="font-semibold text-black mb-2">Electricity</h3>
-                    <p className="text-sm text-gray-600">Bill payments, new connections, complaints</p>
-                  </div>
-                  <div className="border-2 border-gray-200 rounded-lg p-6 hover:border-black transition-colors cursor-pointer group">
-                    <CreditCard className="h-8 w-8 text-gray-600 group-hover:text-black mb-3" />
-                    <h3 className="font-semibold text-black mb-2">Aadhaar</h3>
-                    <p className="text-sm text-gray-600">Updates, corrections, status checks</p>
-                  </div>
-                  <div className="border-2 border-gray-200 rounded-lg p-6 hover:border-black transition-colors cursor-pointer group">
-                    <FileText className="h-8 w-8 text-gray-600 group-hover:text-black mb-3" />
-                    <h3 className="font-semibold text-black mb-2">Tax Services</h3>
-                    <p className="text-sm text-gray-600">Filing, refunds, compliance</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ),
-          icon: <Search className="h-4 w-4" />,
-          language
-        };
-      }
-
-      // Add AI response to chat
-      addChatMessage('ai', aiResponse);
-      setCurrentPage(pageContent);
-      setDetectedLanguage(language);
-      
-    } catch (error) {
-      console.error('Navigation error:', error);
-      addChatMessage('ai', 'I encountered an error processing your request. Please try again.');
-    }
-    
-    setIsLoading(false);
-  }, [sanitizeInput, detectedLanguage, addChatMessage]);
-
-  // Handle voice transcription
-  const handleVoiceTranscription = useCallback((transcript: string, analysis: any) => {
-    setSearchValue(transcript);
-    setIsVoiceActive(false);
-    simulateNavigation(transcript, analysis);
-  }, [simulateNavigation]);
-
-  const handleVoiceStart = useCallback(() => {
-    setIsVoiceActive(true);
-  }, []);
-
-  const handleVoiceStop = useCallback(() => {
-    setIsVoiceActive(false);
+  const handleTabClick = useCallback((tabId: string) => {
+    setTabs(prev => prev.map(tab => ({
+      ...tab,
+      isActive: tab.id === tabId
+    })));
   }, []);
 
   return (
-    <div className="h-screen bg-white flex flex-col font-sans">
-      {/* Mac-style Window Controls & Tab Bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b border-gray-200">
-        {/* Window Controls */}
-        <div className="flex items-center space-x-2">
-          <button className="w-3 h-3 bg-gray-400 rounded-full hover:bg-gray-500 transition-colors">
-            <X className="w-2 h-2 text-gray-600 mx-auto" />
-          </button>
-          <button className="w-3 h-3 bg-gray-400 rounded-full hover:bg-gray-500 transition-colors">
-            <Minus className="w-2 h-2 text-gray-600 mx-auto" />
-          </button>
-          <button className="w-3 h-3 bg-gray-400 rounded-full hover:bg-gray-500 transition-colors">
-            <Square className="w-1.5 h-1.5 text-gray-600 mx-auto" />
-          </button>
-        </div>
-
-        {/* Active Tab */}
-        <div className="flex-1 flex justify-center">
-          <div className="bg-white border border-gray-300 rounded-t-lg px-4 py-1 max-w-xs">
-            <div className="flex items-center space-x-2">
-              {currentPage.icon}
-              <span className="text-sm font-medium text-black truncate">{currentPage.title}</span>
-              {currentPage.language && currentPage.language !== 'en' && (
-                <span className="px-1.5 py-0.5 bg-gray-200 text-gray-700 text-xs rounded">
-                  {currentPage.language.toUpperCase()}
-                </span>
-              )}
-            </div>
+    <div className="h-screen bg-gray-100 flex flex-col font-system-ui" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      {/* macOS Window Frame */}
+      <div className="bg-gray-200 border-b border-gray-300 rounded-t-xl">
+        {/* Traffic Light Controls */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center space-x-2">
+            <button className="w-3 h-3 bg-red-500 rounded-full hover:bg-red-600 transition-colors shadow-sm">
+            </button>
+            <button className="w-3 h-3 bg-yellow-500 rounded-full hover:bg-yellow-600 transition-colors shadow-sm">
+            </button>
+            <button className="w-3 h-3 bg-green-500 rounded-full hover:bg-green-600 transition-colors shadow-sm">
+            </button>
           </div>
+          
+          {/* Window Title */}
+          <div className="absolute left-1/2 transform -translate-x-1/2">
+            <span className="text-sm font-medium text-gray-700">AskIT AI Browser</span>
+          </div>
+          
+          <div className="w-16"></div> {/* Spacer for centering */}
         </div>
 
-        {/* User Profile */}
-        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-          <User className="w-4 h-4 text-gray-600" />
+        {/* Tab Bar */}
+        <div className="flex items-center px-4 pb-2 space-x-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                tab.isActive 
+                  ? 'bg-white text-gray-800 shadow-sm border-t border-l border-r border-gray-300' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {tab.icon}
+              <span className="max-w-32 truncate">{tab.title}</span>
+              {tab.isActive && (
+                <X className="h-3 w-3 text-gray-400 hover:text-gray-600 ml-1" />
+              )}
+            </button>
+          ))}
+          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      {/* Search/Command Interface */}
-      <div className="px-6 py-4 bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto relative">
-          <div className={`relative flex items-center bg-gray-50 border-2 rounded-full transition-all duration-200 ${
-            isVoiceActive ? 'border-black bg-white shadow-lg' : 'border-gray-200 hover:border-gray-300'
-          }`}>
-            {/* AskIT Logo/Icon in idle state */}
-            {!searchValue && !isVoiceActive && (
-              <div className="absolute left-4 flex items-center space-x-2 text-gray-400">
-                <MessageCircle className="h-5 w-5" />
-                <span className="text-sm font-medium">AskIT</span>
+      {/* Browser Toolbar */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center space-x-3">
+          {/* Navigation Controls */}
+          <div className="flex items-center space-x-1">
+            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100">
+              <RotateCcw className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Address Bar */}
+          <div className="flex-1 relative">
+            <div className={`flex items-center bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 transition-all ${
+              isLoading ? 'border-blue-400 bg-blue-50' : ''
+            }`}>
+              {/* Security Icon */}
+              <div className="flex items-center space-x-2 mr-3">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-xs text-gray-500">Secure</span>
               </div>
-            )}
-            
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              className={`w-full px-4 py-3 bg-transparent text-base focus:outline-none transition-all ${
-                !searchValue && !isVoiceActive ? 'pl-20' : 'pl-4'
-              } ${isVoiceActive ? 'text-black' : 'text-gray-700'}`}
-              placeholder={isVoiceActive ? "Listening..." : "Ask me anything about government services..."}
-              disabled={isLoading || isVoiceActive}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && searchValue.trim() && !isLoading) {
-                  simulateNavigation(searchValue);
-                }
-              }}
-            />
-            
-            {/* Voice Interface */}
-            <div className="absolute right-2">
-              {hasApiKey ? (
-                <VoiceInterface 
-                  onTranscription={handleVoiceTranscription}
-                  onStart={handleVoiceStart}
-                  onStop={handleVoiceStop}
-                  className="flex-shrink-0"
-                />
-              ) : (
-                <div className="p-2 text-gray-400">
-                  <Mic className="h-5 w-5" />
+
+              {/* URL/Search Input */}
+              <input
+                type="text"
+                value={isLoading ? searchValue : currentPage.url || 'https://bescom.karnataka.gov.in/bill-payment'}
+                className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none"
+                readOnly
+              />
+
+              {/* Voice Interface */}
+              <div className="flex items-center space-x-2 ml-3">
+                {isLoading && (
+                  <div className="flex items-center space-x-2 text-blue-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-xs font-medium">{processingStatus}</span>
+                  </div>
+                )}
+                
+                <div className={`p-2 rounded-full transition-all ${
+                  isVoiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}>
+                  <Mic className="h-4 w-4" />
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
-          {/* Voice Activity Indicator */}
-          {isVoiceActive && (
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2">
-              <div className="flex items-center space-x-2 bg-black text-white px-3 py-1 rounded-full text-sm">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                <span>Listening...</span>
-              </div>
-            </div>
-          )}
+          {/* Browser Controls */}
+          <div className="flex items-center space-x-2">
+            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex bg-white">
         {/* Page Content */}
-        <div className={`flex-1 overflow-auto bg-gray-50 transition-all duration-300 ${
+        <div className={`flex-1 overflow-auto transition-all duration-300 ${
           showChat ? 'mr-80' : ''
         }`}>
-          <div className="p-6">
-            {currentPage.content}
-          </div>
+          {currentPage.content}
         </div>
 
         {/* AI Chat Sidebar */}
         {showChat && (
-          <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+          <div className="w-80 bg-white border-l border-gray-200 flex flex-col shadow-lg">
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <MessageCircle className="h-5 w-5 text-black" />
-                  <span className="font-semibold text-black">AskIT Assistant</span>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center">
+                    <MessageCircle className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-gray-800">AskIT AI</span>
+                    <p className="text-xs text-gray-600">Voice Assistant</p>
+                  </div>
                 </div>
                 <button 
                   onClick={() => setShowChat(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -521,40 +489,50 @@ const BrowserInterface: React.FC = () => {
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="flex-1 overflow-auto p-4 space-y-4 bg-gray-50">
               {chatMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
+                    className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm shadow-sm ${
                       message.type === 'user'
-                        ? 'bg-black text-white'
-                        : 'bg-gray-100 text-gray-800 border border-gray-200'
+                        ? 'bg-blue-500 text-white rounded-br-md'
+                        : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
                     }`}
                   >
                     {message.content}
+                    <div className={`text-xs mt-1 ${
+                      message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                    }`}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
               ))}
+              
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                      <span className="text-sm text-gray-600">Processing your request...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Chat Input */}
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center space-x-2">
+            <div className="p-4 border-t border-gray-200 bg-white">
+              <div className="flex items-center space-x-3">
                 <input
                   type="text"
-                  placeholder="Ask a follow-up question..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black transition-colors"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                      simulateNavigation(e.currentTarget.value);
-                      e.currentTarget.value = '';
-                    }
-                  }}
+                  placeholder="Ask me anything..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:border-blue-400 transition-colors"
                 />
-                <button className="p-2 text-gray-400 hover:text-black transition-colors">
+                <button className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors">
                   <Mic className="h-4 w-4" />
                 </button>
               </div>
@@ -562,16 +540,6 @@ const BrowserInterface: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Loading Indicator */}
-      {isLoading && (
-        <div className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-full shadow-lg">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-            <span className="text-sm font-medium">Processing...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
